@@ -5,26 +5,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, Scan } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 export function AddBookForm() {
   const [isbn, setIsbn] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookData, setBookData] = useState<any>(null);
   const [library, setLibrary] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const queryClient = useQueryClient();
 
-  const fetchBookInfo = async () => {
-      if (!isbn) return;
+  const fetchBookInfo = async (isbnToUse?: string) => {
+      const targetIsbn = isbnToUse || isbn;
+      if (!targetIsbn) return;
       setLoading(true);
       try {
           // Using OpenLibrary API
-          const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+          const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${targetIsbn}&format=json&jscmd=data`);
           const data = await response.json();
-          const key = `ISBN:${isbn}`;
+          const key = `ISBN:${targetIsbn}`;
           if (data[key]) {
               const info = data[key];
               setBookData({
-                  isbn: isbn,
+                  isbn: targetIsbn,
                   title: info.title,
                   author: info.authors ? info.authors.map((a: any) => a.name).join(", ") : "Unknown",
                   coverUrl: info.cover ? info.cover.large || info.cover.medium : "",
@@ -82,12 +85,30 @@ export function AddBookForm() {
                     onChange={(e) => setIsbn(e.target.value)}
                     className="bg-white text-secondary pl-10"
                 />
-                <Scan className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-1 top-1 h-8 w-8 text-gray-500 hover:text-primary"
+                    onClick={() => setShowScanner(true)}
+                >
+                    <Scan className="h-4 w-4" />
+                </Button>
             </div>
-            <Button onClick={fetchBookInfo} disabled={loading} className="rounded-2xl">
+            <Button onClick={() => fetchBookInfo()} disabled={loading} className="rounded-2xl">
                 {loading ? <Loader2 className="animate-spin" /> : <Search />}
             </Button>
         </div>
+
+        {showScanner && (
+            <BarcodeScanner
+                onScan={(code) => {
+                    setIsbn(code);
+                    setShowScanner(false);
+                    fetchBookInfo(code);
+                }}
+                onClose={() => setShowScanner(false)}
+            />
+        )}
 
         {bookData && (
             <form onSubmit={handleSubmit} className="space-y-4 bg-white/10 p-4 rounded-xl">

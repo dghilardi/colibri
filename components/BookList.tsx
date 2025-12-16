@@ -3,13 +3,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Scan } from "lucide-react";
 import { IBook } from "@/models/Book";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 export function BookList() {
   const [search, setSearch] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
@@ -70,15 +72,35 @@ export function BookList() {
 
   return (
     <div className="space-y-4">
-        <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-                placeholder="Search books..."
-                className="pl-9 bg-white text-secondary"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="relative flex gap-2">
+            <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                    placeholder="Search books..."
+                    className="pl-9 bg-white text-secondary"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowScanner(true)}
+                className="bg-white text-secondary"
+            >
+                <Scan className="h-4 w-4" />
+            </Button>
         </div>
+
+        {showScanner && (
+            <BarcodeScanner
+                onScan={(code) => {
+                    setSearch(code);
+                    setShowScanner(false);
+                }}
+                onClose={() => setShowScanner(false)}
+            />
+        )}
 
         {isLoading && <p className="text-center text-gray-500">Loading...</p>}
         {error && <p className="text-center text-red-500">Error loading books</p>}

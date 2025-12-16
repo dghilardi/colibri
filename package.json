@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev",
     "dev:mongo": "node scripts/dev-with-mongo.mjs",
     "build": "next build",
     "start": "next start",

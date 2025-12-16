@@ -3,8 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Book from "@/models/Book";
-import "@/models/Loan"; // Register Loan model
-import "@/models/User"; // Register User model
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
