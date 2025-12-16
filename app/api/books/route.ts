@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Book from "@/models/Book";
+import WishlistRequest from "@/models/WishlistRequest";
 import "@/models/Loan"; // Register Loan model
 import "@/models/User"; // Register User model
 
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
 
   await dbConnect();
 
-  let query: any = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: any = {};
 
   // Library filtering logic
   // User can only see allowed libraries.
@@ -63,8 +65,19 @@ export async function POST(request: Request) {
 
     try {
         const book = await Book.create(body);
+
+        // Remove from wishlist if exists for this library
+        try {
+            await WishlistRequest.deleteMany({
+                isbn: body.isbn,
+                libraryTarget: body.library
+            });
+        } catch (cleanupError) {
+            console.error("Failed to cleanup wishlist:", cleanupError);
+        }
+
         return NextResponse.json(book);
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({ error: "Failed to create book" }, { status: 500 });
     }
 }
