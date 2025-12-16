@@ -42,7 +42,10 @@ export async function GET(request: Request) {
       ];
   }
 
-  const books = await Book.find(query).populate('currentLoan');
+  const books = await Book.find(query).populate({
+      path: 'currentLoan',
+      populate: { path: 'userId', select: 'name email' }
+  });
 
   return NextResponse.json(books);
 }

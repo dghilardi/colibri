@@ -6,12 +6,14 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { IBook } from "@/models/Book";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 export function BookList() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
-  const { data: books, isLoading, error } = useQuery<IBook[]>({
+  const { data: books, isLoading, error } = useQuery<any[]>({
     queryKey: ['books', search],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -44,6 +46,28 @@ export function BookList() {
     }
   });
 
+  const returnMutation = useMutation({
+    mutationFn: async (bookId: string) => {
+        const res = await fetch('/api/loans/return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookId })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || "Failed to return");
+        }
+        return res.json();
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+        alert("Book returned!");
+    },
+    onError: (e) => {
+        alert(e.message);
+    }
+  });
+
   return (
     <div className="space-y-4">
         <div className="relative">
@@ -60,7 +84,17 @@ export function BookList() {
         {error && <p className="text-center text-red-500">Error loading books</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {books?.map((book: any) => (
+            {books?.map((book: any) => {
+                const isBorrowed = book.status === 'BORROWED';
+                const currentLoan = book.currentLoan;
+                // Safely access nested properties
+                const borrowerId = currentLoan?.userId?._id?.toString() || currentLoan?.userId?.toString();
+                const borrowedByMe = session?.user?.id === borrowerId;
+                const isAdminUser = session?.user?.role === 'ADMIN';
+                const canReturn = isBorrowed && (borrowedByMe || isAdminUser);
+                const borrowerName = currentLoan?.userId?.name || currentLoan?.userId?.email || "Unknown";
+
+                return (
                 <div key={book._id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
                      <div className="h-24 w-16 bg-gray-200 rounded-lg flex-shrink-0">
                          {/* Cover placeholder */}
@@ -78,26 +112,47 @@ export function BookList() {
                                 {book.library}
                             </span>
                          </div>
-                         <div className="flex justify-between items-center mt-2">
-                             <span className={`text-xs font-bold ${book.status === 'AVAILABLE' ? 'text-primary' : 'text-red-500'}`}>
-                                 {book.status}
-                             </span>
-                             {book.status === 'AVAILABLE' && (
-                                 <Button
-                                    size="sm"
-                                    className="h-7 text-xs rounded-xl"
-                                    onClick={() => borrowMutation.mutate(book._id)}
-                                    disabled={borrowMutation.isPending}
-                                 >
-                                    Borrow
-                                 </Button>
+
+                         <div className="mt-2">
+                             <div className="flex justify-between items-center">
+                                 <span className={`text-xs font-bold ${isBorrowed ? 'text-red-500' : 'text-primary'}`}>
+                                     {book.status}
+                                 </span>
+
+                                 {book.status === 'AVAILABLE' && (
+                                     <Button
+                                        size="sm"
+                                        className="h-7 text-xs rounded-xl"
+                                        onClick={() => borrowMutation.mutate(book._id)}
+                                        disabled={borrowMutation.isPending}
+                                     >
+                                        Borrow
+                                     </Button>
+                                 )}
+
+                                 {canReturn && (
+                                     <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs rounded-xl border-red-200 text-red-500 hover:bg-red-50"
+                                        onClick={() => returnMutation.mutate(book._id)}
+                                        disabled={returnMutation.isPending}
+                                     >
+                                        Return
+                                     </Button>
+                                 )}
+                             </div>
+
+                             {isBorrowed && currentLoan && (
+                                 <div className="mt-2 text-[10px] text-gray-400 border-t pt-1">
+                                     <p>Borrowed by: <span className="text-gray-600">{borrowerName}</span></p>
+                                     <p>Date: {new Date(currentLoan.startDate).toLocaleDateString()}</p>
+                                 </div>
                              )}
-                             {/* Show return button if borrowed by me? or admin? */}
-                             {/* For now just simple borrow. */}
                          </div>
                      </div>
                 </div>
-            ))}
+            )})}
 
             {!isLoading && books?.length === 0 && (
                 <p className="text-center text-gray-500 col-span-full">No books found.</p>
