@@ -4,6 +4,16 @@ import { isAdmin, getLibraryGrants } from "@/lib/permissions";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 
+interface ComelitProfile {
+  data: {
+    firstName?: string;
+    lastName?: string;
+    loginEmail: string;
+    userShortId: string | number;
+    profilePictureUrl?: string;
+  };
+}
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -28,7 +38,34 @@ export const authOptions: NextAuthOptions = {
         }
         return null;
       }
-    })
+    }),
+    {
+      id: "comelit",
+      name: "Comelit",
+      type: "oauth",
+      clientId: process.env.COMELIT_CLIENT_ID,
+      clientSecret: process.env.COMELIT_CLIENT_SECRET,
+      authorization: {
+        url: "https://usvc-preprod.cloud.comelitgroup.com/o-auth-2/authorize",
+        params: { scope: "read:user user:email" },
+      },
+      token: "https://usvc-preprod.cloud.comelitgroup.com/o-auth-2/token",
+      userinfo: "https://usvc-preprod.cloud.comelitgroup.com/servicerest/user/portal/getmyprofile",
+      profile(profile: ComelitProfile) {
+        const name = profile.data.firstName && profile.data.lastName 
+            ? `${profile.data.firstName} ${profile.data.lastName}`
+            : profile.data.firstName ? profile.data.firstName
+            : profile.data.lastName ? profile.data.lastName
+            : profile.data.loginEmail.split('@')[0];
+        
+        return {
+            id: `${profile.data.userShortId}`,
+            name,
+            email: profile.data.loginEmail,
+            image: profile.data.profilePictureUrl,
+        }
+      },
+    }
   ],
   callbacks: {
     async signIn({ user }) {
