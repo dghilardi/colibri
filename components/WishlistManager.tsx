@@ -118,7 +118,7 @@ export function WishlistManager() {
       if (!searchQuery) return;
       setIsSearching(true);
       try {
-          const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=5`);
+          const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=5&fields=title,author_name,isbn,cover_i,first_publish_year`);
           const data = await res.json();
           const results = (data.docs || [])
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
