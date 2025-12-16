@@ -1,5 +1,6 @@
 import { NextAuthOptions, DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { isAdmin, getLibraryGrants } from "@/lib/permissions";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
@@ -65,7 +66,13 @@ export const authOptions: NextAuthOptions = {
             image: profile.data.profilePictureUrl,
         }
       },
-    }
+    },
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      })
+    ] : [])
   ],
   callbacks: {
     async signIn({ user }) {

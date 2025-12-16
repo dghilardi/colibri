@@ -69,6 +69,15 @@ export default function SignIn() {
             >
                 Login with Comelit
             </Button>
+
+            <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full text-black bg-white hover:bg-gray-100 rounded-2xl mt-2"
+                onClick={() => signIn("google", { callbackUrl: "/" })}
+            >
+                Login with Google
+            </Button>
           </>
         ) : (
           <div className="space-y-4 h-[200px] flex items-center justify-center">
