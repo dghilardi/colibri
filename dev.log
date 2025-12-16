@@ -1,0 +1,24 @@
+Starting MongoDB Memory Server...
+MongoDB started at: mongodb://127.0.0.1:45259/
+Starting Next.js...
+
+> colibri@0.1.0 dev
+> next dev --webpack
+
+   ▲ Next.js 16.0.10 (webpack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.0.2:3000
+
+ ✓ Starting...
+ ○ (serwist) Serwist is disabled.
+ ○ (serwist) Serwist is disabled.
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+ ✓ Ready in 2.1s
+ GET /auth/signin?callbackUrl=%2F 200 in 3.1s (compile: 2.8s, render: 313ms)
+ GET /auth/signin?callbackUrl=%2F 200 in 177ms (compile: 100ms, render: 77ms)
+ GET /api/auth/providers 200 in 2.5s (compile: 2.4s, render: 39ms)
+ GET /api/auth/session 200 in 2.7s (compile: 2.6s, render: 43ms)
+ GET /api/auth/csrf 200 in 26ms (compile: 15ms, render: 11ms)
+ POST /api/auth/callback/credentials 200 in 113ms (compile: 3ms, render: 110ms)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 1270ms (compile: 1019ms, proxy.ts: 26ms, render: 224ms)

@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00BC70;
+  --color-secondary: #1C1F28;
+  --color-neutral: #D8DFE1;
+
+  /* Extending standard colors */
+  --color-primary-foreground: #ffffff;
+  --color-secondary-foreground: #ffffff;
+
+  --radius-xl: 1rem; /* Matching rounded-2xl to 1rem?
+                        Tailwind rounded-2xl is usually 1rem.
+                        Let's check standard. rounded-2xl is 1rem. */
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #1C1F28;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
