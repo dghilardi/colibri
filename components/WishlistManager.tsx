@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ interface WishlistRequest {
 
 export function WishlistManager() {
   const { data: session } = useSession();
+  const allowedLibraries = session?.user?.allowedLibraries || [];
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +37,12 @@ export function WishlistManager() {
   const [library, setLibrary] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [isAdding, setIsAdding] = useState(false); // To toggle form visibility
+
+  useEffect(() => {
+    if (isAdding && allowedLibraries.length > 0 && !library) {
+      setLibrary(allowedLibraries[0]);
+    }
+  }, [isAdding, allowedLibraries, library]);
 
   const { data: requests, isLoading } = useQuery<WishlistRequest[]>({
     queryKey: ['wishlist'],
@@ -181,12 +188,17 @@ export function WishlistManager() {
                                 <Scan className="h-4 w-4" />
                             </Button>
                       </div>
-                      <Input
-                          placeholder="Library (e.g. R&D)"
+                      <select
                           value={library}
                           onChange={(e) => setLibrary(e.target.value)}
-                          className="w-1/3"
-                      />
+                          className="flex h-10 w-1/3 rounded-2xl border border-neutral bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                          {allowedLibraries.map((lib) => (
+                              <option key={lib} value={lib}>
+                                  {lib}
+                              </option>
+                          ))}
+                      </select>
                       <Button type="submit" disabled={isSearching || !searchQuery}>
                           {isSearching ? <Loader2 className="animate-spin h-4 w-4" /> : "Search"}
                       </Button>
