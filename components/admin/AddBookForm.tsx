@@ -3,48 +3,92 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, Scan } from "lucide-react";
+import { Search, Loader2, Scan, BookOpen } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { searchBooks, getBookDetails, SearchResult } from "@/lib/openlibrary";
 
 export function AddBookForm() {
-  const [isbn, setIsbn] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [bookData, setBookData] = useState<any>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [library, setLibrary] = useState("");
   const [showScanner, setShowScanner] = useState(false);
+  const [mode, setMode] = useState<'isbn' | 'title'>('isbn');
+
   const queryClient = useQueryClient();
 
-  const fetchBookInfo = async (isbnToUse?: string) => {
-      const targetIsbn = isbnToUse || isbn;
-      if (!targetIsbn) return;
+  const handleSearch = async (queryOverride?: string) => {
+      const targetQuery = queryOverride || query;
+      if (!targetQuery) return;
+
       setLoading(true);
+      setBookData(null);
+      setSearchResults([]);
+
       try {
-          // Using OpenLibrary API
-          const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${targetIsbn}&format=json&jscmd=data`);
-          const data = await response.json();
-          const key = `ISBN:${targetIsbn}`;
-          if (data[key]) {
-              const info = data[key];
-              setBookData({
-                  isbn: targetIsbn,
-                  title: info.title,
-                  author: info.authors ? info.authors.map((a: any) => a.name).join(", ") : "Unknown",
-                  coverUrl: info.cover ? info.cover.large || info.cover.medium : "",
-                  description: "",
-              });
+          if (mode === 'isbn') {
+              const details = await getBookDetails(targetQuery);
+              if (details) {
+                  setBookData({
+                      isbn: targetQuery,
+                      title: details.title,
+                      author: details.author,
+                      coverUrl: details.cover, // Map 'cover' from lib to 'coverUrl' for UI
+                      description: ""
+                  });
+              } else {
+                  alert("Book not found via ISBN");
+              }
           } else {
-              alert("Book not found on OpenLibrary");
+              // Title search
+              const results = await searchBooks(targetQuery);
+              if (results.length > 0) {
+                  setSearchResults(results);
+              } else {
+                  alert("No books found with that title");
+              }
           }
       } catch (e) {
           console.error(e);
-          alert("Error fetching book info");
+          alert("Error searching for book");
       } finally {
           setLoading(false);
       }
   };
 
+  const selectBook = async (book: SearchResult) => {
+      setLoading(true);
+      try {
+          const details = await getBookDetails(book.isbn);
+          setBookData({
+              isbn: book.isbn,
+              title: details?.title || book.title,
+              author: details?.author || book.author,
+              coverUrl: details?.cover || book.coverUrl,
+              description: ""
+          });
+          setSearchResults([]);
+      } catch (e) {
+          console.error("Error fetching details", e);
+          // Fallback to search result data
+          setBookData({
+              isbn: book.isbn,
+              title: book.title,
+              author: book.author,
+              coverUrl: book.coverUrl,
+              description: ""
+          });
+          setSearchResults([]);
+      } finally {
+          setLoading(false);
+      }
+  }
+
   const addBookMutation = useMutation({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mutationFn: async (data: any) => {
           const res = await fetch('/api/books', {
               method: 'POST',
@@ -57,9 +101,10 @@ export function AddBookForm() {
       onSuccess: () => {
           alert("Book added successfully!");
           setBookData(null);
-          setIsbn("");
+          setQuery("");
           setLibrary("");
           queryClient.invalidateQueries({ queryKey: ['books'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-books'] });
       }
   });
 
@@ -77,24 +122,50 @@ export function AddBookForm() {
 
   return (
     <div className="space-y-4">
+        <div className="flex gap-2 mb-4">
+            <Button
+                variant={mode === 'isbn' ? "default" : "outline"}
+                onClick={() => { setMode('isbn'); setQuery(''); setSearchResults([]); setBookData(null); }}
+                className="flex-1"
+            >
+                <Scan className="w-4 h-4 mr-2" />
+                Scan / ISBN
+            </Button>
+            <Button
+                variant={mode === 'title' ? "default" : "outline"}
+                onClick={() => { setMode('title'); setQuery(''); setSearchResults([]); setBookData(null); }}
+                className="flex-1"
+            >
+                <Search className="w-4 h-4 mr-2" />
+                Search Title
+            </Button>
+        </div>
+
         <div className="flex gap-2">
             <div className="relative flex-1">
                 <Input
-                    placeholder="Scan or enter ISBN"
-                    value={isbn}
-                    onChange={(e) => setIsbn(e.target.value)}
+                    placeholder={mode === 'isbn' ? "Scan or enter ISBN" : "Enter book title"}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     className="bg-white text-secondary pl-10"
                 />
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute left-1 top-1 h-8 w-8 text-gray-500 hover:text-primary"
-                    onClick={() => setShowScanner(true)}
-                >
-                    <Scan className="h-4 w-4" />
-                </Button>
+                {mode === 'isbn' ? (
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute left-1 top-1 h-8 w-8 text-gray-500 hover:text-primary"
+                        onClick={() => setShowScanner(true)}
+                    >
+                        <Scan className="h-4 w-4" />
+                    </Button>
+                ) : (
+                    <div className="absolute left-3 top-2.5 text-gray-400">
+                        <BookOpen className="h-4 w-4" />
+                    </div>
+                )}
             </div>
-            <Button onClick={() => fetchBookInfo()} disabled={loading} className="rounded-2xl">
+            <Button onClick={() => handleSearch()} disabled={loading} className="rounded-2xl">
                 {loading ? <Loader2 className="animate-spin" /> : <Search />}
             </Button>
         </div>
@@ -102,47 +173,81 @@ export function AddBookForm() {
         {showScanner && (
             <BarcodeScanner
                 onScan={(code) => {
-                    setIsbn(code);
+                    setQuery(code);
                     setShowScanner(false);
-                    fetchBookInfo(code);
+                    handleSearch(code); // Trigger search automatically
                 }}
                 onClose={() => setShowScanner(false)}
             />
         )}
 
+        {/* Search Results List */}
+        {searchResults.length > 0 && (
+            <div className="space-y-2 max-h-60 overflow-y-auto bg-white/5 rounded-xl p-2 border border-gray-700 custom-scrollbar">
+                {searchResults.map((book) => (
+                    <div
+                        key={book.key}
+                        className="flex items-center gap-3 p-2 hover:bg-white/10 rounded cursor-pointer transition-colors"
+                        onClick={() => selectBook(book)}
+                    >
+                        {book.coverUrl ? (
+                            <img src={book.coverUrl} alt="" className="w-10 h-14 object-cover rounded shadow" />
+                        ) : (
+                            <div className="w-10 h-14 bg-gray-700 rounded flex items-center justify-center">
+                                <BookOpen className="w-5 h-5 text-gray-500" />
+                            </div>
+                        )}
+                        <div className="flex-1 overflow-hidden">
+                            <p className="font-medium text-white truncate">{book.title}</p>
+                            <p className="text-xs text-gray-400 truncate">{book.author}</p>
+                            <p className="text-[10px] text-gray-500 font-mono">{book.isbn}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+
         {bookData && (
-            <form onSubmit={handleSubmit} className="space-y-4 bg-white/10 p-4 rounded-xl">
+            <form onSubmit={handleSubmit} className="space-y-4 bg-white/10 p-4 rounded-xl border border-gray-600 animate-in fade-in zoom-in-95">
                  <div className="flex gap-4">
                      {bookData.coverUrl && (
-                         <img src={bookData.coverUrl} alt="Cover" className="h-32 w-20 object-cover rounded-md" />
+                         <img src={bookData.coverUrl} alt="Cover" className="h-32 w-20 object-cover rounded-md shadow-lg" />
                      )}
                      <div className="flex-1 space-y-2">
-                         <Input
-                            value={bookData.title}
-                            onChange={(e) => setBookData({...bookData, title: e.target.value})}
-                            placeholder="Title"
-                            className="bg-white text-secondary"
-                         />
-                         <Input
-                            value={bookData.author}
-                            onChange={(e) => setBookData({...bookData, author: e.target.value})}
-                            placeholder="Author"
-                            className="bg-white text-secondary"
-                         />
+                         <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Title</label>
+                            <Input
+                                value={bookData.title}
+                                onChange={(e) => setBookData({...bookData, title: e.target.value})}
+                                placeholder="Title"
+                                className="bg-white text-secondary"
+                            />
+                         </div>
+                         <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Author</label>
+                            <Input
+                                value={bookData.author}
+                                onChange={(e) => setBookData({...bookData, author: e.target.value})}
+                                placeholder="Author"
+                                className="bg-white text-secondary"
+                            />
+                         </div>
                      </div>
                  </div>
 
                  <div>
-                     <label className="text-sm mb-1 block">Library Target</label>
+                     <label className="text-sm mb-1 block text-gray-300">Library Target</label>
                      <Input
                         value={library}
                         onChange={(e) => setLibrary(e.target.value)}
                         placeholder="e.g. R&D, Marketing"
                         className="bg-white text-secondary"
                      />
+                     <p className="text-xs text-gray-500 mt-1">Assign this book to a specific library group.</p>
                  </div>
 
-                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-2xl" disabled={addBookMutation.isPending}>
+                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-2xl font-bold" disabled={addBookMutation.isPending}>
+                     {addBookMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : null}
                      {addBookMutation.isPending ? "Adding..." : "Add Book to Catalog"}
                  </Button>
             </form>
