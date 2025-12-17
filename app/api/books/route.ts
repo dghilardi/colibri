@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search');
   const library = searchParams.get('library');
+  const adminMode = searchParams.get('admin') === 'true';
 
   await dbConnect();
 
@@ -23,18 +24,26 @@ export async function GET(request: Request) {
   const query: any = {};
 
   // Library filtering logic
-  // User can only see allowed libraries.
   const allowedLibraries = session.user.allowedLibraries || [];
+  const isAdmin = session.user.role === 'ADMIN';
 
-  if (library) {
-     if (allowedLibraries.includes(library)) {
-         query.library = library;
-     } else {
-         return NextResponse.json({ error: "Forbidden library" }, { status: 403 });
-     }
+  if (adminMode && isAdmin) {
+       // Admin sees everything if they requested admin mode
+       if (library) {
+           query.library = library;
+       }
+       // If no library specified, no filter (all libraries)
   } else {
-     // If no library specified, return all allowed.
-     query.library = { $in: allowedLibraries };
+       if (library) {
+          if (allowedLibraries.includes(library)) {
+              query.library = library;
+          } else {
+              return NextResponse.json({ error: "Forbidden library" }, { status: 403 });
+          }
+       } else {
+          // If no library specified, return all allowed.
+          query.library = { $in: allowedLibraries };
+       }
   }
 
   if (search) {
@@ -46,7 +55,9 @@ export async function GET(request: Request) {
       ];
   }
 
-  const books = await Book.find(query).populate({
+  const books = await Book.find(query)
+      .sort({ createdAt: -1 })
+      .populate({
       path: 'currentLoan',
       populate: { path: 'userId', select: 'name email' }
   });
