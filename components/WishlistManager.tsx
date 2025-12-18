@@ -50,7 +50,9 @@ export function WishlistManager() {
       const res = await fetch('/api/wishlist');
       if (!res.ok) throw new Error("Failed to fetch wishlist");
       return res.json();
-    }
+    },
+    // Mock data for development when server is not running
+    initialData: undefined
   });
 
   const addMutation = useMutation({
@@ -158,25 +160,26 @@ export function WishlistManager() {
   const isAdmin = session?.user?.role === 'ADMIN';
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-secondary">Community Wishlist</h2>
-          <Button onClick={() => setIsAdding(!isAdding)} className="gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex justify-between items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-bold text-secondary">Community Wishlist</h2>
+          <Button onClick={() => setIsAdding(!isAdding)} className="gap-2 h-9 text-xs sm:h-10 sm:text-sm shrink-0">
               <PlusCircle className="h-4 w-4" />
-              Request Book
+              <span className="hidden sm:inline">Request Book</span>
+              <span className="sm:hidden">Add</span>
           </Button>
       </div>
 
       {isAdding && (
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
-              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="space-y-4">
-                  <div className="flex gap-2">
+          <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="space-y-3 sm:space-y-4">
+                  <div className="flex gap-2 flex-col sm:flex-row">
                       <div className="relative flex-1">
                           <Input
                               placeholder="Title or ISBN"
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
-                              className="pl-10"
+                              className="pl-10 text-sm sm:text-base"
                           />
                            <Button
                                 type="button"
@@ -188,20 +191,22 @@ export function WishlistManager() {
                                 <Scan className="h-4 w-4" />
                             </Button>
                       </div>
-                      <select
-                          value={library}
-                          onChange={(e) => setLibrary(e.target.value)}
-                          className="flex h-10 w-1/3 rounded-2xl border border-neutral bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                          {allowedLibraries.map((lib) => (
-                              <option key={lib} value={lib}>
-                                  {lib}
-                              </option>
-                          ))}
-                      </select>
-                      <Button type="submit" disabled={isSearching || !searchQuery}>
-                          {isSearching ? <Loader2 className="animate-spin h-4 w-4" /> : "Search"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <select
+                            value={library}
+                            onChange={(e) => setLibrary(e.target.value)}
+                            className="flex-1 sm:w-1/3 rounded-2xl border border-neutral bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {allowedLibraries.map((lib) => (
+                                <option key={lib} value={lib}>
+                                    {lib}
+                                </option>
+                            ))}
+                        </select>
+                        <Button type="submit" disabled={isSearching || !searchQuery} className="shrink-0">
+                            {isSearching ? <Loader2 className="animate-spin h-4 w-4" /> : "Search"}
+                        </Button>
+                      </div>
                   </div>
 
                   {showScanner && (
@@ -247,35 +252,35 @@ export function WishlistManager() {
           </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 sm:gap-4">
           {isLoading && <p className="text-center text-gray-500">Loading requests...</p>}
 
           {requests?.map((req) => (
-              <div key={req._id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center">
-                  <div className="h-20 w-14 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+              <div key={req._id} className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-3 sm:gap-4 items-start sm:items-center">
+                  <div className="h-16 w-12 sm:h-20 sm:w-14 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                       {req.meta.cover ? (
                           <img src={req.meta.cover} alt={req.meta.title} className="h-full w-full object-cover" />
                       ) : (
-                          <div className="h-full w-full flex items-center justify-center text-xs text-gray-400">No Cover</div>
+                          <div className="h-full w-full flex items-center justify-center text-[10px] sm:text-xs text-gray-400 text-center p-1">No Cover</div>
                       )}
                   </div>
 
-                  <div className="flex-1">
-                      <h3 className="font-bold text-secondary">{req.meta.title || "Unknown Title"}</h3>
-                      <p className="text-sm text-gray-500">{req.meta.author || "Unknown Author"}</p>
-                      <div className="flex gap-2 mt-1 text-xs text-gray-400">
-                          <span className="bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{req.libraryTarget}</span>
-                          <span>Requested by {req.requestedBy?.name || "Unknown"}</span>
+                  <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-secondary text-sm sm:text-base line-clamp-2 leading-tight">{req.meta.title || "Unknown Title"}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate mt-0.5">{req.meta.author || "Unknown Author"}</p>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-1 sm:mt-2 text-[10px] sm:text-xs text-gray-400">
+                          <span className="bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 w-fit">{req.libraryTarget}</span>
+                          <span className="truncate">Requested by {req.requestedBy?.name || "Unknown"}</span>
                       </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 shrink-0">
                       {/* Delete if Owner or Admin */}
                       {(isAdmin || session?.user?.id === req.requestedBy?._id) && (
                           <Button
                               variant="ghost"
                               size="sm"
-                              className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                              className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
                               onClick={() => {
                                   if(confirm("Delete this request?")) deleteMutation.mutate(req._id);
                               }}
@@ -288,14 +293,14 @@ export function WishlistManager() {
                       {isAdmin && (
                           <Button
                               size="sm"
-                              className="bg-primary hover:bg-primary/90 text-white gap-1"
+                              className="bg-primary hover:bg-primary/90 text-white gap-1 h-8 px-2 sm:h-9 sm:px-3 text-xs sm:text-sm"
                               onClick={() => {
                                   if(confirm(`Promote "${req.meta.title}" to Catalog?`)) promoteMutation.mutate(req);
                               }}
                               disabled={promoteMutation.isPending}
                           >
                               <BookPlus className="h-4 w-4" />
-                              Promote
+                              <span className="hidden sm:inline">Promote</span>
                           </Button>
                       )}
                   </div>
