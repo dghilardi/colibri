@@ -8,6 +8,16 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    "/((?!api/auth|auth|_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons).*)",
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - auth (Auth routes)
+     * - manifest.json (Web App Manifest)
+     * - sw.js (Service Worker)
+     * - icons (Icon files)
+     * - images (Image files)
+     * - favicon.ico (Favicon file)
+     */
+    '/((?!api|auth|manifest.json|sw.js|icons|images|favicon.ico).*)',
+  ],
 };

@@ -77,7 +77,7 @@ export function BookList() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
                 <Input
                     placeholder="Search books..."
-                    className="pl-9 bg-white text-secondary"
+                    className="pl-9 bg-white text-secondary text-sm sm:text-base"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -86,7 +86,7 @@ export function BookList() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowScanner(true)}
-                className="bg-white text-secondary"
+                className="bg-white text-secondary shrink-0"
             >
                 <Scan className="h-4 w-4" />
             </Button>
@@ -105,7 +105,7 @@ export function BookList() {
         {isLoading && <p className="text-center text-gray-500">Loading...</p>}
         {error && <p className="text-center text-red-500">Error loading books</p>}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {books?.map((book: any) => {
                 const isBorrowed = book.status === 'BORROWED';
                 const currentLoan = book.currentLoan;
@@ -117,34 +117,34 @@ export function BookList() {
                 const borrowerName = currentLoan?.userId?.name || currentLoan?.userId?.email || "Unknown";
 
                 return (
-                <div key={book._id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-                     <div className="h-24 w-16 bg-gray-200 rounded-lg flex-shrink-0">
+                <div key={book._id} className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-3 sm:gap-4 overflow-hidden">
+                     <div className="h-24 w-16 sm:h-28 sm:w-20 bg-gray-200 rounded-lg flex-shrink-0 relative overflow-hidden">
                          {/* Cover placeholder */}
                          {book.coverUrl ? (
-                             <img src={book.coverUrl} alt={book.title} className="h-full w-full object-cover rounded-lg" />
+                             <img src={book.coverUrl} alt={book.title} className="h-full w-full object-cover" />
                          ) : (
-                             <div className="h-full w-full flex items-center justify-center text-gray-400 text-xs text-center p-1">No Cover</div>
+                             <div className="h-full w-full flex items-center justify-center text-gray-400 text-[10px] sm:text-xs text-center p-1">No Cover</div>
                          )}
                      </div>
-                     <div className="flex-1 flex flex-col justify-between">
+                     <div className="flex-1 flex flex-col justify-between min-w-0">
                          <div>
-                            <h3 className="font-bold text-secondary line-clamp-1">{book.title}</h3>
-                            <p className="text-xs text-gray-500">{book.author}</p>
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <h3 className="font-bold text-secondary text-sm sm:text-base line-clamp-2 leading-tight">{book.title}</h3>
+                            <p className="text-xs text-gray-500 truncate mt-1">{book.author}</p>
+                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 truncate max-w-full">
                                 {book.library}
                             </span>
                          </div>
 
                          <div className="mt-2">
-                             <div className="flex justify-between items-center">
-                                 <span className={`text-xs font-bold ${isBorrowed ? 'text-red-500' : 'text-primary'}`}>
+                             <div className="flex justify-between items-center gap-2">
+                                 <span className={`text-xs font-bold truncate ${isBorrowed ? 'text-red-500' : 'text-primary'}`}>
                                      {book.status}
                                  </span>
 
                                  {book.status === 'AVAILABLE' && (
                                      <Button
                                         size="sm"
-                                        className="h-7 text-xs rounded-xl"
+                                        className="h-7 text-xs rounded-xl px-3 shrink-0"
                                         onClick={() => borrowMutation.mutate(book._id)}
                                         disabled={borrowMutation.isPending}
                                      >
@@ -156,7 +156,7 @@ export function BookList() {
                                      <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-7 text-xs rounded-xl border-red-200 text-red-500 hover:bg-red-50"
+                                        className="h-7 text-xs rounded-xl border-red-200 text-red-500 hover:bg-red-50 px-3 shrink-0"
                                         onClick={() => returnMutation.mutate(book._id)}
                                         disabled={returnMutation.isPending}
                                      >
@@ -166,8 +166,8 @@ export function BookList() {
                              </div>
 
                              {isBorrowed && currentLoan && (
-                                 <div className="mt-2 text-[10px] text-gray-400 border-t pt-1">
-                                     <p>Borrowed by: <span className="text-gray-600">{borrowerName}</span></p>
+                                 <div className="mt-2 text-[10px] text-gray-400 border-t pt-1 truncate">
+                                     <p className="truncate">Borrowed by: <span className="text-gray-600">{borrowerName}</span></p>
                                      <p>Date: {new Date(currentLoan.startDate).toLocaleDateString()}</p>
                                  </div>
                              )}
